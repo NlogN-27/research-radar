@@ -31,6 +31,11 @@ pnpm dev
 
 Open the local URL printed by the development server, normally `http://localhost:5173`.
 
+On Windows, you can instead double-click `start-research-radar.cmd`. The launcher
+opens the dashboard, avoids starting a duplicate server, and installs dependencies
+automatically when `node_modules` is missing. Keep its terminal window open while
+using the app; press Ctrl+C there to stop it.
+
 ## Configure API credentials
 
 Copy `.env.example` to `.env.local`, replace the placeholder values, and keep the real file private:
