@@ -28,8 +28,9 @@ if not exist "node_modules\" (
 
 echo Starting Research Radar at http://localhost:5173
 echo Keep this window open. Press Ctrl+C to stop the app.
-start "" powershell -NoProfile -WindowStyle Hidden -Command "Start-Sleep -Seconds 4; Start-Process 'http://localhost:5173'"
-call pnpm dev
+start "" powershell -NoProfile -WindowStyle Hidden -Command "$url = 'http://localhost:5173'; for ($i = 0; $i -lt 60; $i++) { try { $null = Invoke-WebRequest -UseBasicParsing $url -TimeoutSec 2; Start-Process $url; exit } catch { Start-Sleep -Seconds 1 } }"
+node ".\node_modules\next\dist\bin\next" dev --hostname localhost --port 5173
+if errorlevel 1 goto failed
 exit /b %errorlevel%
 
 :missing_runtime
