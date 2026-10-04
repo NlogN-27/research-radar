@@ -4,7 +4,7 @@ Research Radar is a private, local-first reading queue for frontier AI and a foc
 
 ## Current capabilities
 
-- Real paper retrieval from arXiv (no key) and OpenAlex
+- Real paper retrieval from arXiv, OpenAlex, and OpenReview
 - Manual-only synchronization through **Sync now**
 - DOI, arXiv ID, and normalized-title deduplication
 - Two explainable rankings: **Frontier** and **Personalized**
@@ -41,7 +41,7 @@ ARXIV_QUERY=cat:cs.AI OR cat:cs.CL OR cat:cs.LG OR cat:cs.CV OR cat:cs.RO
 MAX_PAPERS_PER_SOURCE=25
 ```
 
-Only arXiv and OpenAlex are currently queried. Semantic Scholar is intentionally skipped, and the Hugging Face token is reserved for future artifact enrichment. API keys never enter browser responses.
+arXiv and OpenReview require no key. OpenReview searches recent public submissions across the major participating venues, with balanced queries for LLMs, multimodality, reasoning, research agents, scientific AI, and current ICLR few-shot work. Semantic Scholar is intentionally skipped, and the Hugging Face token is reserved for future artifact enrichment. API keys never enter browser responses.
 
 ## Local data
 

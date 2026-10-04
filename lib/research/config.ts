@@ -15,6 +15,6 @@ export function connectorStatuses() {
     { name: "OpenAlex", configured: Boolean(researchConfig.openAlexKey), active: Boolean(researchConfig.openAlexKey), credential: "OPENALEX_API_KEY" },
     { name: "Semantic Scholar", configured: Boolean(researchConfig.semanticScholarKey), active: false, credential: "Optional; currently skipped" },
     { name: "Hugging Face", configured: Boolean(researchConfig.huggingFaceToken), active: false, credential: "Optional enrichment; currently skipped" },
-    { name: "OpenReview", configured: true, active: false, credential: "Planned venue connector" },
+    { name: "OpenReview", configured: true, active: true, credential: "No key required" },
   ];
 }

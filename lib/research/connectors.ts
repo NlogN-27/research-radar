@@ -7,12 +7,13 @@ function missingKey(source: string, variable: string): ConnectorResult {
   return { source, papers: [], status: "missing-key", message: `Add ${variable} to .env.local.` };
 }
 
-async function request(url: string, headers?: HeadersInit) {
+async function request(url: string, init: RequestInit = {}) {
   let lastError: Error | undefined;
   for (let attempt = 0; attempt < 3; attempt += 1) {
     try {
       const response = await fetch(url, {
-        headers: { "User-Agent": "ResearchRadar/0.2 (local research reader)", ...headers },
+        ...init,
+        headers: { "User-Agent": "ResearchRadar/0.3 (local research reader)", ...init.headers },
         signal: AbortSignal.timeout(25_000), cache: "no-store",
       });
       if (response.ok) return response;
@@ -113,4 +114,97 @@ export const arxivConnector: ResearchConnector = {
   },
 };
 
-export const activeConnectors = [arxivConnector, openAlexConnector];
+function openReviewValue(content: Record<string, unknown>, key: string) {
+  const field = content[key];
+  if (field && typeof field === "object" && "value" in field) return (field as { value?: unknown }).value;
+  return field;
+}
+
+function stringList(value: unknown) {
+  return Array.isArray(value) ? value.map((item) => text(item)).filter(Boolean) : text(value) ? [text(value)] : [];
+}
+
+export const openReviewConnector: ResearchConnector = {
+  name: "OpenReview",
+  async fetchRecent(since) {
+    const now = new Date();
+    const year = now.getUTCFullYear();
+    const iclrYear = now.getUTCMonth() >= 5 ? year + 1 : year;
+    const searches = [
+      { term: "large language model" },
+      { term: "multimodal" },
+      { term: "reasoning" },
+      { term: "research agent" },
+      { term: "scientific" },
+      { term: "few-shot", group: `ICLR.cc/${iclrYear}/Conference` },
+    ];
+    const results = await Promise.allSettled(searches.map(async (search) => {
+      const response = await request("https://api2.openreview.net/notes/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...search, source: "forum", sort: "cdate:desc", limit: 100 }),
+      });
+      const payload = await response.json() as { notes?: Array<Record<string, unknown>> };
+      return payload.notes ?? [];
+    }));
+    const fulfilled = results.filter((result): result is PromiseFulfilledResult<Array<Record<string, unknown>>> => result.status === "fulfilled");
+    if (!fulfilled.length) {
+      const firstError = results.find((result): result is PromiseRejectedResult => result.status === "rejected");
+      return { source: this.name, papers: [], status: "error", message: firstError?.reason instanceof Error ? firstError.reason.message : "OpenReview request failed" };
+    }
+
+    const conferenceWindow = Math.min(since.getTime(), now.getTime() - 120 * 86_400_000);
+    const normalizeNote = (note: Record<string, unknown>): NormalizedPaper | null => {
+      const content = (note.content as Record<string, unknown> | undefined) ?? {};
+      const id = text(note.id);
+      const invitations = stringList(note.invitations);
+      const venue = text(openReviewValue(content, "venue"));
+      const created = typeof note.cdate === "number" ? note.cdate : typeof note.tcdate === "number" ? note.tcdate : 0;
+      const isSubmission = invitations.some((invitation) => /\/-\/(?:Blind_)?Submission$/.test(invitation));
+      if (!id || !isSubmission || created < conferenceWindow || created > now.getTime() + 86_400_000 || /withdrawn|desk rejected|rejected submission/i.test(venue)) return null;
+      const keywords = stringList(openReviewValue(content, "keywords"));
+      const areas = [
+        ...stringList(openReviewValue(content, "primary_area")),
+        ...stringList(openReviewValue(content, "subject_areas")),
+      ];
+      return {
+        id: stableId("openreview", id),
+        title: text(openReviewValue(content, "title")),
+        abstract: text(openReviewValue(content, "abstract")),
+        primaryUrl: `https://openreview.net/forum?id=${encodeURIComponent(text(note.forum) || id)}`,
+        authors: stringList(openReviewValue(content, "authors")),
+        publishedAt: new Date(created).toISOString().slice(0, 10),
+        sources: ["OpenReview"],
+        categories: [...new Set([venue, ...areas, ...keywords].filter(Boolean))],
+        identifiers: { openReview: id },
+      };
+    };
+    const buckets = fulfilled.map((result) => result.value.map(normalizeNote)
+      .filter((paper): paper is NormalizedPaper => Boolean(paper?.title && paper.primaryUrl))
+      .sort((a, b) => b.publishedAt.localeCompare(a.publishedAt)));
+    const papers: NormalizedPaper[] = [];
+    const seen = new Set<string>();
+    for (let index = 0; papers.length < researchConfig.maxPapersPerSource; index += 1) {
+      let added = false;
+      for (const bucket of buckets) {
+        const paper = bucket[index];
+        if (paper && !seen.has(paper.id)) {
+          seen.add(paper.id);
+          papers.push(paper);
+          added = true;
+          if (papers.length >= researchConfig.maxPapersPerSource) break;
+        }
+      }
+      if (!added) break;
+    }
+
+    return {
+      source: this.name,
+      papers,
+      status: "ready",
+      message: `Connected to ${fulfilled.length}/${searches.length} topic searches`,
+    };
+  },
+};
+
+export const activeConnectors = [arxivConnector, openAlexConnector, openReviewConnector];

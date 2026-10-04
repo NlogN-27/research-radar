@@ -21,6 +21,7 @@ type DashboardData = { papers: Paper[]; lastSync: string | null; sources: Source
 const fallbackSources: SourceSummary[] = [
   { name: "arXiv", status: "ready", message: "Public API · ready to sync", count: 0 },
   { name: "OpenAlex", status: "ready", message: "API key configured", count: 0 },
+  { name: "OpenReview", status: "ready", message: "Public API · ready to sync", count: 0 },
 ];
 
 function formatDate(value: string | null) {
