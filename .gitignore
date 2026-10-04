@@ -39,6 +39,7 @@ yarn-error.log*
 # typescript
 next-env.d.ts
 /dist/
+*.tsbuildinfo
 /.wrangler/
 # Checkout-local execution profile and tool state; never publish them.
 /.sites-runtime/
@@ -46,3 +47,5 @@ next-env.d.ts
 /.codex/
 /outputs/
 /work/
+# Local paper metadata and SQLite sidecar files.
+/.research-radar/

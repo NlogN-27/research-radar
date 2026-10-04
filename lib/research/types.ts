@@ -1,4 +1,5 @@
 export type FeedKind = "frontier" | "personalized";
+export type PaperStatus = "unseen" | "saved" | "dismissed";
 
 export type NormalizedPaper = {
   id: string;
@@ -16,12 +17,16 @@ export type NormalizedPaper = {
     semanticScholar?: string;
     openReview?: string;
   };
+  metrics?: {
+    citationCount?: number;
+  };
 };
 
 export type RankedPaper = NormalizedPaper & {
   frontierScore: number;
   personalizedScore: number;
   reason: string;
+  status?: PaperStatus;
 };
 
 export type ConnectorResult = {
@@ -29,6 +34,13 @@ export type ConnectorResult = {
   papers: NormalizedPaper[];
   status: "ready" | "missing-key" | "error";
   message?: string;
+};
+
+export type SourceSummary = {
+  name: string;
+  status: "ready" | "missing-key" | "disabled" | "error";
+  message: string;
+  count: number;
 };
 
 export interface ResearchConnector {
